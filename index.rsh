@@ -1,19 +1,22 @@
 'reach 0.1';
-
-export const main = Reach.App(() => {
-  const A = Participant('Alice', {
-    // Specify Alice's interact interface here
-  });
-  const B = Participant('Bob', {
-    // Specify Bob's interact interface here
-  });
-  init();
-  // The first one to publish deploys the contract
-  A.publish();
-  commit();
-  // The second one to publish always attaches
-  B.publish();
-  commit();
-  // write your program here
-  exit();
-});
+'use strict';
+export const main = Reach.App(
+  {},
+  [Participant('Alice', { amt : UInt,
+               getRelay: Fun([], Address) }),
+   Participant('Relay', { getBob: Fun([], Address) }) ],
+  (Alice, Relay) => {
+    Alice.only(() => {
+      const [ amt, relay ] =
+            declassify([ interact.amt,
+                         interact.getRelay()]); });
+    Alice.publish(amt, relay)
+      .pay(amt);
+    Relay.set(relay);
+    commit();
+    Relay.only(() => {
+      const bob = declassify(interact.getBob()); });
+    Relay.publish(bob);
+    transfer(amt).to(bob);
+    commit();
+    exit(); } );
